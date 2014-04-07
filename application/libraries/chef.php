@@ -1,13 +1,14 @@
-<?php namespace Jenssegers\Chef;
-
-class Chef {
+<?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
+class chef {
 
     protected $server;
     protected $key;
     protected $client;
     protected $version;
     protected $enterprise_org;
+    protected $debug;
 
+	private $CI;
     // the number of seconds to wait while trying to connect
     protected $timeout = 10;
 
@@ -20,22 +21,26 @@ class Chef {
      * @param  string  $version
      * @return void
      */
-    function __construct($server, $client, $key, $version = '0.11.x', $enterprise = false)
+    function __construct($server=NULL, $client=NULL, $key=NULL, $version=NULL, $enterprise = NULL, $debug=NULL)
     {
-        $this->server = $server;
-        $this->client = $client;
-        $this->key = $key;
-        $this->version = $version;
-
-        // get private key content
-        if (file_exists($key))
+		$this->CI =& get_instance();
+		$this->CI->config->load('chef');
+		
+        $this->server 		= $this->CI->config->item('server'); // FUCK IT!!! I couldent get the IF thing working!
+        $this->client 		= ($client?		$client		: $this->CI->config->item('client'));
+        $this->key 			= ($key?		$key		: $this->CI->config->item('key'));
+        $this->version 		= ($version?	$version	: $this->CI->config->item('version'));
+        $this->enterprise 	= ($enterprise?	$enterprise	: $this->CI->config->item('enterprise'));
+        $this->debug 		= ($debug?		$bebug		: $this->CI->config->item('debug'));
+		// get private key content
+        if (file_exists($this->key))
         {
-            $this->key = file_get_contents($key);
+            $this->key = file_get_contents($this->key);
         }
 
-        if ($enterprise)
+        if ($this->enterprise)
         {
-            $this->enterprise_org = end(explode('/', trim($server, '/')));
+            $this->enterprise_org = end(explode('/', trim($this->server, '/')));
         }
         else
         {
@@ -136,13 +141,12 @@ class Chef {
             $data = json_encode($data);
         }
 
-
         // sign the request
         $this->sign($endpoint, $method, $data, $header);
 
         // initiate curl
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_URL, $url);//base_url("welcome/test"));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $this->timeout);
@@ -154,17 +158,22 @@ class Chef {
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
 
-        // add data to post en put requests
+        // add data to post and put requests
         if ($method == 'POST' || $method == 'PUT')
         {
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+			curl_setopt($ch, CURLOPT_POST, true);
+			curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
         }
 
         // execute
         $raw_response = curl_exec($ch);
+
+        if($raw_response === false) {
+            $curl_errno = curl_errno($ch);
+            $curl_error = curl_error($ch);
+        }
         $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+		curl_close($ch);
 
         // we got a response
         if ($raw_response !== FALSE)
@@ -184,6 +193,8 @@ class Chef {
             }
 
             return $response;
+        } else {
+            throw new \Exception($curl_error, $curl_errno);
         }
 
         return $raw_response;

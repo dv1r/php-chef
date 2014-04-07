@@ -1,4 +1,4 @@
-<?php
+<?php 
 /*
 |--------------------------------------------------------------------------
 | Chef API configuration
@@ -11,9 +11,9 @@
 | 'version' = the version of the Chef Server API that is being used
 */
 
-return array(
-    'server'    => 'https://localhost',
-    'client'    => 'client',
-    'key'       => '/etc/chef/client.pem',
-    'version'   => '0.11.4',
-);
+$config["server"] 		= "https://localhost";
+$config["client"] 		= "client";
+$config["key"] 			= "/etc/chef/client.pem";
+$config["version"] 		= "11.4.0";
+$config["enterprise"] 	= TRUE;
+$config["debug"] 		= FALSE;
