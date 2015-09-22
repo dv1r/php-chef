@@ -116,10 +116,11 @@ class chef {
 
         // check if endpoint is full url
         $parts = parse_url($endpoint);
-        if (isset($parts['host']))
+
+        if (isset($parts['path']))
         {
             // split server and endpoint
-            $endpoint = $parts['path'];
+            $endpoint = '/' . ltrim($parts['path'], '/');
             $url = $this->server . $endpoint;
         }
         else
@@ -130,9 +131,9 @@ class chef {
         }
 
         // append data to url if GET request
-        if ($method == 'GET' && is_array($data))
+        if ($method == 'GET' && isset($parts['query']))
         {
-            $url .= '?' . http_build_query($data);
+            $url .= '?' . $parts['query'];
             $data = FALSE;
         }
 
@@ -279,10 +280,10 @@ class chef {
         $timestamp = gmdate("Y-m-d\TH:i:s\Z");
 
         // add X-Ops headers
-        $header[] = 'X-Ops-Sign: algorithm=sha1;version=1.0';
-        $header[] = 'X-Ops-UserId: ' . $this->client;
-        $header[] = 'X-Ops-Timestamp: ' . $timestamp;
-        $header[] = 'X-Ops-Content-Hash: ' . base64_encode(sha1($data, true));
+        $header[] = 'X-Ops-Sign:version=1.0';
+        $header[] = 'X-Ops-UserId:' . $this->client;
+        $header[] = 'X-Ops-Timestamp:' . $timestamp;
+        $header[] = 'X-Ops-Content-Hash:' . base64_encode(sha1($data, true));
 
         //rewrite the endpoint for enterprise organizations
         if ($this->enterprise_org !== false)
